@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Node dependencies & build artifacts
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ML Models & Weights
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.onnx
+*.ckpt
+
+# Geospatial & Raw Datasets
+*.tif
+*.tiff
+*.geotiff
+*.h5
+*.hdf5
+data_raw/
+data_subset/
+
+# Logs & Temporary Files
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
