@@ -9,12 +9,12 @@ import { QueryRequest, QueryResponse, VisualEvidence } from '../types';
  * Fields: task_hint, question, image, image_t2, sar
  */
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 const ANALYZE_ENDPOINT = `${API_BASE_URL}/api/analyze`;
 
-// Default to true for standalone frontend testing.
-// Member 1 can set this to false or toggle via UI when connecting the real backend.
-export const USE_MOCK_DEFAULT = true;
+// Default to false to enable live backend mode by default.
+// Users can still toggle to Mock Mode via the UI DataSource switch.
+export const USE_MOCK_DEFAULT = false;
 
 /**
  * Generates an isolated mock response simulating the ISRO agent decision pipeline.
