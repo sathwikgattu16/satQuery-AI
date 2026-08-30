@@ -140,3 +140,42 @@ async def test_optical_and_sar_pairing():
     assert payload.primary_tensor.shape == torch.Size([1, 6, 1, 224, 224])
     assert payload.secondary_tensor.shape == torch.Size([1, 2, 1, 224, 224])
     assert payload.metadata["secondary"]["band_mapping"] == ["VV", "VH"]
+
+@pytest.mark.anyio
+async def test_multispectral_standardization_agreement():
+    """
+    Test 8: Verify that 6-band optical GeoTIFF uploads are standardized using
+    exact Prithvi constants matching ml/data/preprocess.py, while SAR remains untouched.
+    """
+    from ml.data.preprocess import PRITHVI_MEAN, PRITHVI_STD
+
+    adapter = RasterDataAdapter()
+    # Create raw DN optical raster
+    raw_optical = np.full((6, 120, 120), fill_value=2000.0, dtype=np.float32)
+    bio_opt = io.BytesIO()
+    tifffile.imwrite(bio_opt, raw_optical)
+    opt_file = create_mock_upload_file("raw_s2_optical.tif", bio_opt.getvalue())
+
+    # Create raw SAR raster (dB or linear amplitude, e.g. 0.05 to 0.8)
+    raw_sar = np.full((2, 120, 120), fill_value=0.5, dtype=np.float32)
+    bio_sar = io.BytesIO()
+    tifffile.imwrite(bio_sar, raw_sar)
+    sar_file = create_mock_upload_file("raw_s1_sar.tif", bio_sar.getvalue())
+
+    payload = await adapter.adapt_inputs(image=opt_file, sar=sar_file, task_hint="fusion")
+
+    # 1. Optical checks
+    opt_tensor = payload.primary_tensor  # [1, 6, 1, 224, 224]
+    expected_opt_vals = (torch.tensor([2000.0] * 6) - PRITHVI_MEAN) / PRITHVI_STD
+    for c in range(6):
+        channel_mean = opt_tensor[0, c, 0, :, :].mean().item()
+        expected = expected_opt_vals[c].item()
+        assert abs(channel_mean - expected) < 1e-4
+
+    # 2. SAR checks (must NOT be normalized with optical Prithvi constants)
+    sar_tensor = payload.secondary_tensor  # [1, 2, 1, 224, 224]
+    for c in range(2):
+        channel_mean = sar_tensor[0, c, 0, :, :].mean().item()
+        # SAR values remain 0.5 without optical subtraction
+        assert abs(channel_mean - 0.5) < 1e-4
+

@@ -106,17 +106,17 @@ export const InputSelector: React.FC<InputSelectorProps> = ({
         <span className="guidance-text">
           {mode === 'single' && (
             <>
-              <strong>Single-Scene Mode:</strong> Provide 1 primary optical/multispectral tile for Visual Question Answering or automated scene description.
+              <strong>Single-Scene Mode:</strong> Provide 1 primary optical/multispectral tile (6-band TIFF for Real Mode, or PNG/SVG for Demo Mode).
             </>
           )}
           {mode === 'bitemporal' && (
             <>
-              <strong>Bi-temporal Mode:</strong> Provide <strong>T1 (Baseline)</strong> and <strong>T2 (Target/Observation)</strong> tiles. Backend will perform spatial difference segmentation.
+              <strong>Bi-temporal Change:</strong> Provide <strong>T1 (Baseline)</strong> and <strong>T2 (Observation)</strong>. Real Mode requires stacked 6-band Sentinel-2 TIFFs (B02-B07). For quick UI testing, click <em>Load Demo Images</em>.
             </>
           )}
           {mode === 'optical_sar' && (
             <>
-              <strong>Multimodal Fusion:</strong> Provide <strong>Optical (RGB/NIR)</strong> and <strong>SAR (VV/VH Radar)</strong> imagery for all-weather penetrating analytics.
+              <strong>Multimodal Fusion:</strong> Provide <strong>Optical (6-band TIFF)</strong> and <strong>SAR (2-band VV/VH TIFF)</strong> for all-weather penetrating analytics.
             </>
           )}
         </span>
