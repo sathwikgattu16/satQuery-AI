@@ -91,7 +91,21 @@ class SatQueryController:
         specialist = self.registry.get(task_decision.specialist_key)
         specialist_name = specialist.name if specialist else f"DefaultMock-{task_decision.task_name.upper()}"
         is_mock_specialist = getattr(specialist, "is_mock", True) if specialist else True
-        mode_label = "MOCK / DEMO" if is_mock_specialist else "REAL NEURAL WEIGHTS"
+        is_placeholder = getattr(specialist, "is_placeholder", False) if specialist else False
+        impl_status = getattr(specialist, "implementation_status", None)
+
+        if is_mock_specialist:
+            mode_label = "MOCK / DEMO"
+            if not impl_status:
+                impl_status = "mock_demo"
+        elif is_placeholder:
+            mode_label = f"PLACEHOLDER ({specialist_name})"
+            if not impl_status:
+                impl_status = f"{task_decision.specialist_key}_placeholder"
+        else:
+            mode_label = f"REAL FEATURE-BASED ({specialist_name} on Adapted Prithvi Backbone)"
+            if not impl_status:
+                impl_status = f"real_feature_based_{task_decision.specialist_key}"
         
         trace_steps.append(
             f"Stage 5 [Specialist Selection]: Dispatched [{specialist_name}] (Execution Mode: {mode_label})"
@@ -109,7 +123,8 @@ class SatQueryController:
                 context=adapted_payload.metadata
             )
             answer = result.get("answer", "Analysis complete.")
-            confidence = float(result.get("confidence", 0.90))
+            raw_conf = result.get("confidence")
+            confidence: Optional[float] = float(raw_conf) if raw_conf is not None else None
             raw_evidence = result.get("evidence")
             exec_detail = result.get("execution_detail", f"Executed {specialist_name}")
             trace_steps.append(f"Stage 6 [Execution]: {exec_detail}")
@@ -129,19 +144,36 @@ class SatQueryController:
         if processing_time <= 0:
             processing_time = 0.015
 
-        trace_steps.append(
-            f"Stage 7 [Synthesis]: Synthesized response with confidence score: {round(confidence * 100, 1)}% (Latency: {processing_time}s)"
-        )
+        if confidence is not None:
+            trace_steps.append(
+                f"Stage 7 [Synthesis]: Synthesized response with confidence score: {round(confidence * 100, 1)}% (Latency: {processing_time}s)"
+            )
+        else:
+            trace_steps.append(
+                f"Stage 7 [Synthesis]: Synthesized uncalibrated representation response (Latency: {processing_time}s)"
+            )
 
         visualization: Optional[VisualEvidence] = None
         if raw_evidence and isinstance(raw_evidence, dict):
+            ev_type = raw_evidence.get("type", "overlay")
+            type_mapping = {
+                "bbox": "image",
+                "change_heatmap": "heatmap",
+                "feature_fusion": "overlay"
+            }
+            mapped_type = type_mapping.get(ev_type, ev_type)
+            if mapped_type not in ("overlay", "heatmap", "change_mask", "split", "image", "diff"):
+                mapped_type = "overlay"
+
+            metrics_payload = raw_evidence.get("metrics") or (result.get("fusion_features") if result else None) or (result.get("change_metrics") if result else None)
+
             visualization = VisualEvidence(
-                type=raw_evidence.get("type", "overlay"),
+                type=mapped_type,
                 title=raw_evidence.get("title", f"{task_decision.task_name.upper()} Visual Evidence"),
                 url=raw_evidence.get("url") or raw_evidence.get("data_url"),
                 base64=raw_evidence.get("base64"),
                 description=raw_evidence.get("description"),
-                metrics=raw_evidence.get("metrics")
+                metrics=metrics_payload
             )
 
         execution_summary = ExecutionSummary(
@@ -150,7 +182,8 @@ class SatQueryController:
             models_used=[specialist_name],
             num_images_provided=compat_result.num_images,
             compatibility_notes=compat_result.compatibility_notes,
-            trace_steps=trace_steps
+            trace_steps=trace_steps,
+            implementation_status=impl_status
         )
 
         return QueryResponse(

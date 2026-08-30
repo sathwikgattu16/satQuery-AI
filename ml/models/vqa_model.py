@@ -14,6 +14,9 @@ class VQASpecialist(BaseSpecialist):
     def __init__(self, backbone: Optional[PrithviBackbone] = None):
         super().__init__(name="VQASpecialist")
         self.backbone = backbone or PrithviBackbone()
+        self.is_mock = False
+        self.is_placeholder = True
+        self.implementation_status = "vqa_placeholder"
 
     def predict(
         self,
@@ -30,9 +33,9 @@ class VQASpecialist(BaseSpecialist):
             "answer": f"VQA analysis placeholder for: '{query}'",
             "confidence": 0.88,
             "evidence": {
-                "type": "bbox",
+                "type": "image",
                 "data_url": None,
                 "description": "Bounding box grounding the identified object or feature."
             },
-            "execution_detail": "Executed VQASpecialist with shared Prithvi representation."
+            "execution_detail": "Executed VQASpecialist with shared Prithvi representation (Placeholder head)."
         }

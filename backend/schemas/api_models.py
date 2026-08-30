@@ -29,6 +29,9 @@ class ExecutionSummary(BaseModel):
     num_images_provided: int = Field(..., description="Count of input images successfully ingested")
     compatibility_notes: str = Field(..., description="Diagnostic notes on sensor alignment and compatibility")
     trace_steps: List[str] = Field(default_factory=list, description="Step-by-step agent decision logs")
+    implementation_status: Optional[str] = Field(
+        None, description="Implementation status of the specialist (e.g. real_feature_based_change, real_feature_based_fusion, vqa_placeholder, caption_placeholder, mock_demo)"
+    )
 
 class QueryResponse(BaseModel):
     """
@@ -38,7 +41,7 @@ class QueryResponse(BaseModel):
     success: bool = Field(True, description="Whether the analysis succeeded")
     task: str = Field(..., description="Executed task identifier (vqa, caption, change, multimodal_fusion)")
     answer: str = Field(..., description="Natural language geospatial synthesis")
-    confidence: float = Field(..., description="Confidence score between 0.0 and 1.0")
+    confidence: Optional[float] = Field(None, description="Confidence score between 0.0 and 1.0")
     processing_time: float = Field(..., description="Total pipeline latency in seconds")
     execution_summary: ExecutionSummary = Field(..., description="Auditable agent execution trace")
     visualization: Optional[Union[VisualEvidence, str]] = Field(

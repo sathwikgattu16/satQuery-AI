@@ -33,12 +33,42 @@ def resolve_device(device_setting: Optional[str] = None) -> str:
         if torch.cuda.is_available():
             return f"cuda:{torch.cuda.current_device()}"
         return "cpu"
-    
-    if target.startswith("cuda"):
+
+    if target == "cpu":
+        return "cpu"
+
+    if target == "cuda":
+        if torch.cuda.is_available():
+            return "cuda"
+        logger.warning("Requested device 'cuda' unavailable. Falling back to 'cpu'.")
+        return "cpu"
+
+    if target.startswith("cuda:"):
         if not torch.cuda.is_available():
             logger.warning(f"Requested device '{target}' unavailable. Falling back to 'cpu'.")
             return "cpu"
-        return target
+
+        try:
+            index_text = target.split(":", 1)[1]
+            index = int(index_text)
+
+            if index < 0 or index >= torch.cuda.device_count():
+                logger.warning(
+                    f"Requested device '{target}' does not exist "
+                    f"(available CUDA devices: {torch.cuda.device_count()}). "
+                    "Falling back to 'cpu'."
+                )
+                return "cpu"
+
+            return f"cuda:{index}"
+
+        except (IndexError, ValueError):
+            logger.warning(f"Invalid CUDA device setting '{target}'. Falling back to 'cpu'.")
+            return "cpu"
+
+    if target.startswith("cuda"):
+        logger.warning(f"Invalid CUDA device setting '{target}'. Falling back to 'cpu'.")
+        return "cpu"
         
     return "cpu"
 

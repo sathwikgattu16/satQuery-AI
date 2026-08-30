@@ -47,6 +47,9 @@ class ChangeSpecialist(BaseSpecialist):
         super().__init__(
             name="ChangeSpecialist"
         )
+        self.is_mock = False
+        self.is_placeholder = False
+        self.implementation_status = "real_feature_based_change"
 
         # IMPORTANT:
         # Reuse the shared adapted Prithvi backbone.
@@ -377,7 +380,7 @@ class ChangeSpecialist(BaseSpecialist):
             "confidence": None,
 
             "evidence": {
-                "type": "change_heatmap",
+                "type": "heatmap",
                 "data_url": None,
                 "description": (
                     "14x14 spatial change map generated "
