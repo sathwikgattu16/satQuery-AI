@@ -5,13 +5,15 @@ Owner: Member 1
 """
 
 import time
+import torch
 from typing import Optional, List
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 from backend.schemas.api_models import QueryResponse, ExecutionSummary, VisualEvidence
 from backend.agent.compatibility import CompatibilityChecker, CompatibilityResult
 from backend.agent.data_adapter import RasterDataAdapter, AdaptedDataPayload
 from backend.agent.task_classifier import TaskClassifier, TaskDecision
 from backend.agent.registry import ModelRegistry
+from backend.agent.synthesizer import StructuredGeospatialSynthesizer
 
 class SatQueryController:
     """Main agentic orchestrator for SatQuery AI."""
@@ -115,14 +117,47 @@ class SatQueryController:
         primary_input = adapted_payload.primary_tensor if adapted_payload.primary_tensor is not None else adapted_payload.primary_raw
         secondary_input = adapted_payload.secondary_tensor if adapted_payload.secondary_tensor is not None else adapted_payload.secondary_raw
 
+        # Defensive validation: if real ChangeSpecialist is selected, verify inputs are tensors
+        is_mock_specialist = getattr(specialist, "is_mock", False) if specialist else True
+        if task_decision.task_name == "change" and not is_mock_specialist:
+            if not isinstance(primary_input, torch.Tensor) or not isinstance(secondary_input, torch.Tensor):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Change detection requires 6-band Sentinel-2 multispectral TIFFs (B02-B07) for both T1 and T2. Uploaded image only contains 1 channel or is a standard RGB image. Please upload stacked 6-band GeoTIFFs or toggle to Mock Mode for demo previews."
+                )
+
         if specialist:
-            result = specialist.predict(
-                query=question or "",
-                image_primary=primary_input,
-                image_secondary=secondary_input,
-                context=adapted_payload.metadata
-            )
+            try:
+                result = specialist.predict(
+                    query=question or "",
+                    image_primary=primary_input,
+                    image_secondary=secondary_input,
+                    context=adapted_payload.metadata
+                )
+            except (ValueError, TypeError) as val_err:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Input validation error for task '{task_decision.task_name}': {str(val_err)}"
+                )
+            except Exception as err:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Inference error during {specialist_name}: {str(err)}"
+                )
+
             answer = result.get("answer", "Analysis complete.")
+            # Enhance answer synthesis if structured metrics are present
+            if "change_metrics" in result and isinstance(result["change_metrics"], dict):
+                answer = StructuredGeospatialSynthesizer.synthesize_change(
+                    change_metrics=result["change_metrics"],
+                    query=question
+                )
+            elif "fusion_features" in result and isinstance(result["fusion_features"], dict):
+                answer = StructuredGeospatialSynthesizer.synthesize_fusion(
+                    fusion_metrics=result["fusion_features"],
+                    query=question
+                )
+
             raw_conf = result.get("confidence")
             confidence: Optional[float] = float(raw_conf) if raw_conf is not None else None
             raw_evidence = result.get("evidence")

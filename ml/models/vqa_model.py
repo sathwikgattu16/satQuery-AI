@@ -7,6 +7,7 @@ Owner: Member 4
 import torch
 from typing import Dict, Any, Optional
 from backend.models.base import BaseSpecialist
+from backend.agent.synthesizer import StructuredGeospatialSynthesizer
 from ml.models.prithvi_model import PrithviBackbone
 
 class VQASpecialist(BaseSpecialist):
@@ -32,7 +33,9 @@ class VQASpecialist(BaseSpecialist):
         feature_metrics: Dict[str, Any] = {}
         if isinstance(image_primary, torch.Tensor):
             try:
-                cls_token, patch_tokens = self.backbone.extract_features(image_primary)
+                features = self.backbone.extract_features(image_primary)
+                cls_token = features[:, 0, :]
+                patch_tokens = features[:, 1:, :]
                 feature_metrics = {
                     "cls_dim": int(cls_token.shape[-1]),
                     "num_patches": int(patch_tokens.shape[1]),
@@ -41,8 +44,14 @@ class VQASpecialist(BaseSpecialist):
             except Exception:
                 pass
 
+        synthesized_answer = StructuredGeospatialSynthesizer.synthesize_vqa(
+            query=query,
+            feature_metrics=feature_metrics or None,
+            metadata=context
+        )
+
         return {
-            "answer": f"VQA feature analysis completed for query: '{query}'. Optical feature representation extracted through adapted Prithvi backbone. (Downstream language reasoning head is currently a prototype placeholder).",
+            "answer": synthesized_answer,
             "confidence": None,
             "evidence": {
                 "type": "image",

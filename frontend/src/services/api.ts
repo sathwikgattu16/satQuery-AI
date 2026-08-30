@@ -184,14 +184,20 @@ export async function submitAnalysis(
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Server returned ${response.status}: ${errorText || response.statusText}`);
+      let errorDetail = '';
+      try {
+        const errJson = await response.json();
+        errorDetail = errJson.detail || JSON.stringify(errJson);
+      } catch {
+        errorDetail = await response.text();
+      }
+      throw new Error(`[HTTP ${response.status}] ${errorDetail || response.statusText}`);
     }
 
     const data: QueryResponse = await response.json();
     return data;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown connection error';
-    throw new Error(`Failed to communicate with SATQUERY backend at ${ANALYZE_ENDPOINT}: ${message}`);
+    throw new Error(message);
   }
 }

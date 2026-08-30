@@ -149,9 +149,8 @@ class RasterDataAdapter:
                 else:
                     meta["is_multispectral"] = False
                     meta["is_demo"] = True
-                    meta["note"] = f"TIFF with {channels} channel(s). Preserved on demo path."
-                    resized = self._resize_tensor_spatial(tensor, 224, 224)
-                    return resized.unsqueeze(0).unsqueeze(2).float(), arr, meta
+                    meta["note"] = f"TIFF with {channels} channel(s). Preserved on demo path without multispectral fabrication."
+                    return None, arr, meta
 
             except Exception:
                 # If tifffile read fails on arbitrary mock bytes, fallback gracefully to raw demo bytes
