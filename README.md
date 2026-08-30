@@ -1,108 +1,108 @@
-# SATQUERY AI
+# SatQuery AI — Multimodal Remote-Sensing Vision-Language Assistant
 
-**An Interactive Vision-Language Assistant for Multimodal Remote Sensing Image Analysis through Text Queries**
-
-> **Current Status**: Initial Development Skeleton  
-> This repository currently contains the initial architectural skeleton and modular interfaces for 6 teammates to clone and develop independently.
-
----
-
-## 📌 Project Overview & Purpose
-
-**SATQUERY AI** is an intelligent vision-language assistant tailored for Earth Observation (EO) and remote sensing data. Built for the ISRO Hackathon, the system enables researchers, disaster management teams, and urban planners to query multi-sensor remote sensing imagery using natural language.
-
-### Core Capabilities
-1. **Single-Image Vision Question Answering (VQA)** on optical, multispectral, or SAR imagery.
-2. **Single-Image Captioning / Text-Guided Grounding**.
-3. **Bi-temporal Change Analysis** (T1 vs. T2 change description and verification).
-4. **Co-registered Optical + SAR Joint Analysis** (fusion for all-weather intelligence).
-5. **Domain Adaptation**: Fine-tuning / adaptation on remote-sensing datasets (BigEarthNet) with **Prithvi-EO-2.0** as the shared adapted backbone.
-6. **Agentic Orchestration**: Input validation $\rightarrow$ task classification $\rightarrow$ specialist selection $\rightarrow$ visual evidence generation $\rightarrow$ auditable execution trace.
+> **Smart India Hackathon (SIH)**  
+> **Foundation Model**: IBM/NASA Prithvi-EO-2.0 (`prithvi_eo_v2_100_tl`)  
+> **Architecture**: Decoupled Multimodal AI System (FastAPI Backend + React Frontend + PyTorch Specialist Registry)
 
 ---
 
-## 🏗️ High-Level System Architecture
+## 🛰️ 1. Project Overview
+
+**SatQuery AI** is an intelligent vision-language assistant tailored for earth observation (EO) and remote sensing data. It orchestrates multimodal queries across four core capabilities:
+
+1. **Single-Scene VQA**: Visual Question Answering with spatial grounding on optical satellite imagery.
+2. **Automated Captioning**: Comprehensive scene descriptions and multi-class semantic land-cover summaries.
+3. **Bi-Temporal Change Detection**: Quantified spatial change maps and difference analysis between T1 and T2 observations.
+4. **Optical + SAR Multimodal Fusion**: All-weather cloud-penetrating analysis combining Optical reflectance and Synthetic Aperture Radar (SAR) backscatter.
+
+---
+
+## 🏛️ 2. System Architecture
 
 ```
-User Query + Remote Sensing Imagery (Single / Optical+SAR / Bi-temporal)
-                                  │
-                                  ▼
-                     React + Vite Frontend (UI)
-                                  │
-                                  ▼ (POST /api/query)
-                         FastAPI Backend
-                                  │
-                                  ▼
-                   SatQuery Agent / Controller
-          ├── Input Compatibility Checker (Modality & Format)
-          ├── Task Classifier (Intent & Routing)
-          └── Specialist Model Registry
-                                  │
-                                  ▼
-           Specialist Dispatch (Shared Prithvi Backbone)
-          ├── Single-Image VQA Specialist
-          ├── Captioning / Grounding Specialist
-          ├── Bi-temporal Change Specialist
-          └── Optical-SAR Fusion Specialist
-                                  │
-                                  ▼
-        Response Integration (Answer + Confidence + Evidence + Trace)
-                                  │
-                                  ▼
-                     Interactive Results in UI
+React / Vite UI (Port 5173)
+         │
+         ▼ (POST /api/analyze — multipart/form-data)
+  FastAPI Backend (Port 8000)
+         │
+         ├── Stage 1: [CompatibilityChecker] (Integrity & multi-sensor validation)
+         ├── Stage 2: [RasterDataAdapter] (Converts multi-band GeoTIFFs to [1, 6, 1, 224, 224] tensors)
+         ├── Stage 3: [TaskClassifier] (Authoritative routing: vqa | caption | change | fusion)
+         ├── Stage 4: [ModelLifecycleManager] (Singleton caching & device resolution)
+         ├── Stage 5: [ModelRegistry] (Decoupled specialist dispatch)
+         ├── Stage 6: [BaseSpecialist.predict()] (Execution with diagnostics)
+         └── Stage 7: [ResponseSynthesizer] (Pydantic contract + visual evidence)
 ```
 
 ---
 
-## 📁 Repository Structure
+## 🚀 3. Quick Start & Setup Guide
 
+### 3.1 Backend Setup (FastAPI)
+```bash
+# 1. Navigate to repository root
+cd satQuery-AI
+
+# 2. Install backend dependencies
+pip install -r backend/requirements.txt
+
+# 3. (Optional) Configure environment
+cp .env.example .env
+
+# 4. Start the backend server
+python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-satQuery-AI/
-├── backend/                  # FastAPI service, agent controller, task classifier, registry
-│   ├── main.py
-│   ├── config.py
-│   ├── requirements.txt
-│   ├── schemas/              # Typed Pydantic request/response models
-│   ├── agent/                # Agent orchestration, routing, compatibility
-│   └── models/               # Base specialist interface definitions
-├── frontend/                 # React + TypeScript + Vite interactive web application
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── tsconfig.json
-│   ├── index.html
-│   └── src/
-│       ├── App.tsx
-│       ├── types/            # TypeScript schemas mirroring backend API
-│       ├── services/         # API client targeting /api/query
-│       └── components/       # Modular UI components (Trace, Evidence, QueryBar, etc.)
-├── ml/                       # Machine learning data processing, adaptation, and models
-│   ├── data/                 # BigEarthNet subset selection, patch extraction, preprocessing
-│   ├── adaptation/           # Prithvi-EO-2.0 LoRA / parameter-efficient adaptation
-│   └── models/               # Specialist model wrappers (VQA, Captioning, Change, Fusion)
-├── docs/                     # Specifications and architectural documentation
-│   ├── api_contract.md       # Shared frontend-backend API contract
-│   ├── architecture.md       # Detailed system design and data flows
-│   └── model_interfaces.md   # Python abstract interfaces for ML specialists
-├── README.md
-└── .gitignore
+* **API Health Check**: `http://localhost:8000/`
+* **Interactive OpenAPI Docs**: `http://localhost:8000/docs`
+
+### 3.2 Frontend Setup (React + Vite)
+```bash
+# 1. Navigate to frontend directory
+cd frontend
+
+# 2. Install node dependencies
+npm install
+
+# 3. Start development server
+npm run dev
 ```
+* **Frontend UI**: `http://localhost:5173/`
 
 ---
 
-## 👥 Team Ownership & Responsibilities
+## ⚙️ 4. Configuration & Model Modes
 
-| Team Member | Module / Area | Core Responsibilities |
+Configuration is managed via `.env` (template in `.env.example`):
+
+| Variable | Default | Description |
 | :--- | :--- | :--- |
-| **Member 1** | **Backend + Agent + Integration** | FastAPI application, API schemas, `SatQueryController`, routing, compatibility checker, execution trace, final end-to-end integration. |
-| **Member 2** | **Frontend (React + Vite)** | Interactive UI, multi-modal image uploader (single, optical+SAR, bi-temporal), evidence viewer, execution trace visualization. |
-| **Member 3** | **BigEarthNet + Prithvi Adaptation** | BigEarthNet subsetting, S1/S2 patch extraction, Prithvi backbone setup, LoRA fine-tuning/adaptation pipeline. |
-| **Member 4** | **VQA + Captioning Specialists** | Single-image remote-sensing VQA model and single-image captioning/grounding workflow. |
-| **Member 5** | **Bi-temporal Change Specialist** | Change detection, change description, and time-series VQA workflows using dual-timestamp imagery. |
-| **Member 6** | **Optical + SAR Fusion Specialist** | Multi-sensor joint analysis and optical-SAR feature fusion workflows. |
+| `USE_REAL_MODELS` | `false` | Set to `true` to activate real neural model weights in `ml/models/`. Default is `false` for instant, reliable offline judging and demo mode. |
+| `PRITHVI_CHECKPOINT` | `None` | Path to local `prithvi_eo_v2_100_tl.pt` foundation weights. |
+| `LORA_ADAPTER_PATH` | `None` | Path to fine-tuned LoRA adapter weights. |
+| `MODEL_DEVICE` | `auto` | Target compute device (`"auto"`, `"cuda:0"`, `"cpu"`). |
 
 ---
 
-## 📚 Documentation Links
-- [API Contract](file:///C:/Users/Lenovo/Desktop/satQuery-AI/docs/api_contract.md)
-- [Architecture & Data Flows](file:///C:/Users/Lenovo/Desktop/satQuery-AI/docs/architecture.md)
-- [Model Specialist Interfaces](file:///C:/Users/Lenovo/Desktop/satQuery-AI/docs/model_interfaces.md)
+## 🧪 5. Verification & Testing
+
+### 5.1 Automated Test Suite (34/34 Passing)
+Run all backend unit, contract, routing, and lifecycle tests:
+```bash
+python -m pytest backend/tests/ -v
+```
+
+### 5.2 Live End-to-End Test
+Verify live HTTP communication across all 4 modes against a running server:
+```bash
+python backend/tests/live_e2e_test.py
+```
+
+---
+
+## 📋 6. Team Roles & Handoff Documentation
+
+* **Member 1 (User)**: Backend API, Compatibility Validation, Task Routing, Model Lifecycle & Execution Trace.
+* **Member 2**: React/Vite Frontend UI, Evidence Viewer & Execution Trace Display.
+* **Member 3**: IBM/NASA Prithvi-EO-2.0 Adaptation, LoRA Fine-Tuning & Real Specialist Neural Heads.
+  * 📖 **Detailed ML Handoff Specification**: See [`docs/member3_ml_handoff.md`](docs/member3_ml_handoff.md).
+* **Members 4, 5, 6**: Specialist models development, domain evaluation, and SIH demonstration preparation.

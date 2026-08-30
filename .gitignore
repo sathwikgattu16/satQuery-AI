@@ -3,8 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.pytest_cache/
 
-# Environments
+# Environments & Configs
+.env
+.env.local
 .venv/
 env/
 venv/
@@ -23,6 +26,7 @@ dist-ssr/
 *.safetensors
 *.onnx
 *.ckpt
+checkpoints/
 
 # Geospatial & Raw Datasets
 *.tif
@@ -32,6 +36,7 @@ dist-ssr/
 *.hdf5
 data_raw/
 data_subset/
+Portugal_2500/
 
 # Logs & Temporary Files
 *.log
@@ -39,3 +44,5 @@ data_subset/
 Thumbs.db
 .idea/
 .vscode/
+uploads/
+scratch/
