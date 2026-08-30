@@ -6,6 +6,10 @@ Owner: Member 1
 
 import os
 from typing import List, Optional
+from dotenv import load_dotenv
+
+# Load local environment variables from .env if present
+load_dotenv()
 
 class Settings:
     PROJECT_NAME: str = "SatQuery AI"

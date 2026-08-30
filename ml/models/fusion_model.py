@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 import torch
+import torch.nn.functional as F
 
 from backend.models.base import BaseSpecialist
 from ml.models.prithvi_model import PrithviBackbone
@@ -48,6 +49,9 @@ class FusionSpecialist(BaseSpecialist):
         super().__init__(
             name="FusionSpecialist"
         )
+        self.is_mock = False
+        self.is_placeholder = False
+        self.implementation_status = "real_feature_based_fusion"
 
         # IMPORTANT:
         # The backend should inject the shared adapted
@@ -245,8 +249,16 @@ class FusionSpecialist(BaseSpecialist):
 
         # Deterministic SAR representation.
         with torch.no_grad():
-            sar_features = self._sar_features(
+            sar_raw_features = self._sar_features(
                 sar_tensor
+            )
+            # Numerically stable normalization of deterministic SAR features
+            # so SAR representation scale is commensurate with Prithvi optical features
+            sar_features = F.normalize(
+                sar_raw_features,
+                p=2,
+                dim=-1,
+                eps=1e-6,
             )
 
         # Feature-level multimodal fusion.
@@ -344,7 +356,7 @@ class FusionSpecialist(BaseSpecialist):
             "confidence": None,
 
             "evidence": {
-                "type": "feature_fusion",
+                "type": "overlay",
                 "data_url": None,
                 "description": (
                     "Combined adapted Prithvi optical "

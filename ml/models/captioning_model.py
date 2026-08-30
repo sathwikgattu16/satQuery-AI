@@ -14,6 +14,9 @@ class CaptioningSpecialist(BaseSpecialist):
     def __init__(self, backbone: Optional[PrithviBackbone] = None):
         super().__init__(name="CaptioningSpecialist")
         self.backbone = backbone or PrithviBackbone()
+        self.is_mock = False
+        self.is_placeholder = True
+        self.implementation_status = "caption_placeholder"
 
     def predict(
         self,
@@ -33,5 +36,5 @@ class CaptioningSpecialist(BaseSpecialist):
                 "data_url": None,
                 "description": "Segmentation mask highlighting salient land-cover regions."
             },
-            "execution_detail": "Executed CaptioningSpecialist using shared Prithvi representation."
+            "execution_detail": "Executed CaptioningSpecialist using shared Prithvi representation (Placeholder head)."
         }
