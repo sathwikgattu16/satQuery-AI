@@ -16,6 +16,7 @@ from PIL import Image
 import torch
 import tifffile
 from fastapi import UploadFile
+from ml.data.preprocess import PRITHVI_MEAN, PRITHVI_STD
 
 class AdaptedDataPayload:
     """
@@ -128,6 +129,14 @@ class RasterDataAdapter:
                     
                     # Resize to [6, 224, 224]
                     resized = self._resize_tensor_spatial(tensor, 224, 224)
+
+                    # Standardize with Prithvi-EO-2.0 optical constants if raw DN
+                    # Avoid double normalization if caller already passed standardized data
+                    if resized.abs().mean() > 10.0 or resized.max() > 50.0:
+                        mean = PRITHVI_MEAN.view(6, 1, 1).to(resized.device)
+                        std = PRITHVI_STD.view(6, 1, 1).to(resized.device)
+                        resized = (resized - mean) / std
+
                     # Reshape to Prithvi contract: [B=1, C=6, T=1, H=224, W=224]
                     prithvi_tensor = resized.unsqueeze(0).unsqueeze(2).float()
                     meta["formatted_prithvi_shape"] = list(prithvi_tensor.shape)

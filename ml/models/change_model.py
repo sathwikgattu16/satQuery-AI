@@ -213,10 +213,18 @@ class ChangeSpecialist(BaseSpecialist):
         These thresholds are representation-level heuristics,
         not calibrated change-detection probabilities.
         """
+        # Conservative thresholds for identical or numerically indistinguishable observations
+        if cls_distance <= 1e-4 and mean_patch_change <= 1e-3:
+            return (
+                "No significant representation-level change was detected between T1 and T2. "
+                f"CLS distance={cls_distance:.4f}, "
+                f"mean spatial change={mean_patch_change:.4f}, "
+                f"maximum spatial change={max_patch_change:.4f}."
+            )
 
-        if cls_distance < 0.03:
+        if cls_distance < 0.03 and mean_patch_change < 0.20:
             level = "low"
-        elif cls_distance < 0.10:
+        elif cls_distance < 0.10 or mean_patch_change < 0.40:
             level = "moderate"
         else:
             level = "high"

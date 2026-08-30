@@ -82,11 +82,12 @@ class StructuredGeospatialSynthesizer:
         h = change_metrics.get("heatmap_height", 14)
         w = change_metrics.get("heatmap_width", 14)
 
-        if cls_dist < 0.001:
-            level = "Negligible representation-level change"
-        elif cls_dist < 0.02:
+        # Explicit threshold for identical or numerically indistinguishable observations
+        if cls_dist <= 1e-4 and mean_patch <= 1e-3:
+            level = "No significant representation-level change"
+        elif cls_dist < 0.03 and mean_patch < 0.20:
             level = "Low representation-level change"
-        elif cls_dist < 0.10:
+        elif cls_dist < 0.10 or mean_patch < 0.40:
             level = "Moderate representation-level change"
         else:
             level = "Pronounced representation-level change"
