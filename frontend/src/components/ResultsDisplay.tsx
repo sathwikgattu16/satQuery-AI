@@ -58,8 +58,9 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
     execution_summary,
   } = response;
 
-  const confidencePct = Math.round(confidence * 100);
-  const isHighConfidence = confidence >= 0.85;
+  const hasConfidence = confidence !== null && confidence !== undefined;
+  const confidencePct = hasConfidence ? Math.round(confidence * 100) : null;
+  const isHighConfidence = hasConfidence && confidence >= 0.85;
   const isOverride =
     execution_summary.task_hint_provided &&
     execution_summary.task_hint_provided !== 'none' &&
@@ -79,6 +80,11 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
           <span className="selected-task-badge">
             Task: <strong>{task.toUpperCase()}</strong>
           </span>
+          {execution_summary.implementation_status && (
+            <span className={`status-pill ${execution_summary.implementation_status.includes('real') ? 'pill-live' : 'pill-mock'}`}>
+              {execution_summary.implementation_status.replace(/_/g, ' ').toUpperCase()}
+            </span>
+          )}
           {isOverride && (
             <span className="override-pill" title="Backend agent autonomously selected a different task than UI hint based on sensor inputs">
               <AlertTriangle size={12} /> Agent Overrode UI Hint (`{execution_summary.task_hint_provided}`)
@@ -107,18 +113,24 @@ export const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
             <span className="metric-name">
               <Zap size={14} className="metric-icon text-cyan" /> Confidence
             </span>
-            <span className={`metric-tag ${isHighConfidence ? 'tag-high' : 'tag-med'}`}>
-              {isHighConfidence ? 'High' : 'Moderate'}
+            <span className={`metric-tag ${hasConfidence ? (isHighConfidence ? 'tag-high' : 'tag-med') : 'tag-neutral'}`}>
+              {hasConfidence ? (isHighConfidence ? 'High' : 'Moderate') : 'Uncalibrated'}
             </span>
           </div>
           <div className="metric-value-row">
-            <span className="metric-main-value">{confidencePct}%</span>
-            <span className="metric-sub-value">({confidence.toFixed(2)})</span>
+            {hasConfidence ? (
+              <>
+                <span className="metric-main-value">{confidencePct}%</span>
+                <span className="metric-sub-value">({confidence.toFixed(2)})</span>
+              </>
+            ) : (
+              <span className="metric-main-value" style={{ fontSize: '1rem', color: '#94a3b8' }}>Uncalibrated</span>
+            )}
           </div>
           <div className="confidence-meter-track">
             <div
               className={`confidence-meter-fill ${isHighConfidence ? 'fill-emerald' : 'fill-cyan'}`}
-              style={{ width: `${Math.min(100, confidencePct)}%` }}
+              style={{ width: `${hasConfidence ? Math.min(100, confidencePct!) : 0}%` }}
             ></div>
           </div>
         </div>

@@ -41,6 +41,7 @@ export interface ExecutionSummary {
   num_images_provided: number;
   compatibility_notes: string;
   trace_steps?: string[];
+  implementation_status?: string;
 }
 
 /**
@@ -62,7 +63,7 @@ export interface QueryResponse {
   success: boolean;
   task: string;
   answer: string;
-  confidence: number;
+  confidence: number | null;
   processing_time: number;
   execution_summary: ExecutionSummary;
   visualization?: VisualEvidence | string | null;

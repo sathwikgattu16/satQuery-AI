@@ -4,6 +4,7 @@ Single-Image Remote Sensing Captioning Specialist.
 Owner: Member 4
 """
 
+import torch
 from typing import Dict, Any, Optional
 from backend.models.base import BaseSpecialist
 from ml.models.prithvi_model import PrithviBackbone
@@ -28,13 +29,31 @@ class CaptioningSpecialist(BaseSpecialist):
         """
         Execute single-image captioning inference.
         """
+        feature_metrics: Dict[str, Any] = {}
+        if isinstance(image_primary, torch.Tensor):
+            try:
+                cls_token, patch_tokens = self.backbone.extract_features(image_primary)
+                feature_metrics = {
+                    "cls_dim": int(cls_token.shape[-1]),
+                    "num_patches": int(patch_tokens.shape[1]),
+                    "cls_norm": round(float(torch.norm(cls_token, p=2, dim=-1).mean().item()), 4),
+                }
+            except Exception:
+                pass
+
         return {
-            "answer": "High-resolution satellite view showing mixed agricultural fields and dense forest patches.",
-            "confidence": 0.85,
+            "answer": "Remote sensing scene analysis: High-resolution multispectral imagery processed through adapted Prithvi backbone. (Downstream caption generation head is currently a prototype placeholder).",
+            "confidence": None,
             "evidence": {
                 "type": "overlay",
                 "data_url": None,
-                "description": "Segmentation mask highlighting salient land-cover regions."
+                "description": "Spatial attention/feature map from shared Prithvi representation."
             },
-            "execution_detail": "Executed CaptioningSpecialist using shared Prithvi representation (Placeholder head)."
+            "execution_detail": "Extracted optical representations using shared adapted Prithvi backbone. Captioning language generator is currently a transparent prototype placeholder.",
+            "implementation_status": "caption_placeholder",
+            "feature_metrics": feature_metrics or None,
+            "adaptation_status": {
+                "prithvi_adapted": bool(getattr(self.backbone, "is_adapted", False)),
+                "caption_head_trained": False
+            }
         }
