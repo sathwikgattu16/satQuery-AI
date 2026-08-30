@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import List
 
@@ -20,46 +22,67 @@ PRITHVI_STD = torch.tensor(
 )
 
 
-def find_band_file(s2_dir: Path, patch_id: str, band: str) -> Path:
-    path = s2_dir / f"{patch_id}_{band}.tif"
-    if not path.exists():
-        raise FileNotFoundError(f"Missing band: {path}")
-    return path
-
-
 def read_band(path: Path) -> np.ndarray:
+    """Read the first raster band as float32."""
     with rasterio.open(path) as src:
         data = src.read(1)
 
     return data.astype(np.float32)
 
 
-def preprocess_s2_patch(s2_dir: str, patch_id: str) -> torch.Tensor:
-    """
-    Load B02-B07 from one BigEarthNet S2 patch and return:
+def find_band_file(
+    s2_dir: Path,
+    patch_id: str,
+    band: str,
+) -> Path:
+    path = s2_dir / f"{patch_id}_{band}.tif"
 
+    if not path.exists():
+        raise FileNotFoundError(f"Missing band: {path}")
+
+    return path
+
+
+def preprocess_s2_patch(
+    s2_dir: str,
+    patch_id: str,
+) -> torch.Tensor:
+    """
+    Load BigEarthNet Sentinel-2 B02-B07.
+
+    Returns:
         [1, 6, 1, 224, 224]
-
-    suitable for the instantiated Prithvi-EO-2.0 100M-TL backbone.
     """
+
     s2_path = Path(s2_dir)
 
     bands: List[np.ndarray] = []
 
     for band in PRITHVI_BANDS:
-        path = find_band_file(s2_path, patch_id, band)
+        path = find_band_file(
+            s2_path,
+            patch_id,
+            band,
+        )
+
         bands.append(read_band(path))
 
-    # Bring all bands to the same spatial resolution.
-    # B02-B04 are 120x120; B05-B07 are 60x60.
-    target_h, target_w = 120, 120
+    # B02-B04 are 120x120.
+    # B05-B07 are 60x60.
+    target_h = 120
+    target_w = 120
 
     tensors = []
 
     for image in bands:
-        tensor = torch.from_numpy(image).unsqueeze(0).unsqueeze(0)
 
-        if tensor.shape[-2:] != (target_h, target_w):
+        tensor = torch.from_numpy(image)
+        tensor = tensor.unsqueeze(0).unsqueeze(0)
+
+        if tensor.shape[-2:] != (
+            target_h,
+            target_w,
+        ):
             tensor = F.interpolate(
                 tensor,
                 size=(target_h, target_w),
@@ -67,12 +90,17 @@ def preprocess_s2_patch(s2_dir: str, patch_id: str) -> torch.Tensor:
                 align_corners=False,
             )
 
-        tensors.append(tensor.squeeze(0))
+        tensors.append(
+            tensor.squeeze(0)
+        )
 
     # [6, 120, 120]
-    stacked = torch.cat(tensors, dim=0)
+    stacked = torch.cat(
+        tensors,
+        dim=0,
+    )
 
-    # Resize to Prithvi's required spatial resolution.
+    # [6, 224, 224]
     stacked = F.interpolate(
         stacked.unsqueeze(0),
         size=(224, 224),
@@ -80,7 +108,7 @@ def preprocess_s2_patch(s2_dir: str, patch_id: str) -> torch.Tensor:
         align_corners=False,
     ).squeeze(0)
 
-    # Normalize using the official Prithvi-EO-2.0 statistics.
+    # Prithvi normalization.
     mean = PRITHVI_MEAN[:, None, None]
     std = PRITHVI_STD[:, None, None]
 
@@ -90,25 +118,56 @@ def preprocess_s2_patch(s2_dir: str, patch_id: str) -> torch.Tensor:
     return stacked.unsqueeze(0).unsqueeze(2)
 
 
-if __name__ == "__main__":
-    import sys
+def preprocess_s1_patch(
+    s1_dir: str,
+    patch_id: str,
+) -> torch.Tensor:
+    """
+    Load BigEarthNet Sentinel-1 VH/VV.
 
-    if len(sys.argv) != 3:
-        print(
-            "Usage: python -m ml.data.preprocess "
-            "<S2_DIRECTORY> <PATCH_ID>"
+    Returns:
+        [1, 2, 1, 224, 224]
+
+    Channels:
+        0 = VH
+        1 = VV
+    """
+
+    s1_path = Path(s1_dir)
+
+    vh_path = s1_path / f"{patch_id}_VH.tif"
+    vv_path = s1_path / f"{patch_id}_VV.tif"
+
+    if not vh_path.exists():
+        raise FileNotFoundError(
+            f"Missing VH band: {vh_path}"
         )
-        raise SystemExit(1)
 
-    s2_dir = sys.argv[1]
-    patch_id = sys.argv[2]
+    if not vv_path.exists():
+        raise FileNotFoundError(
+            f"Missing VV band: {vv_path}"
+        )
 
-    x = preprocess_s2_patch(s2_dir, patch_id)
+    vh = read_band(vh_path)
+    vv = read_band(vv_path)
 
-    print("Preprocessed tensor:")
-    print("shape:", tuple(x.shape))
-    print("dtype:", x.dtype)
-    print("min:", float(x.min()))
-    print("max:", float(x.max()))
-    print("mean:", float(x.mean()))
-    print("std:", float(x.std()))
+    stacked = torch.from_numpy(
+        np.stack(
+            [vh, vv],
+            axis=0,
+        )
+    )
+
+    # [2, H, W] -> [1, 2, 1, 224, 224]
+    stacked = F.interpolate(
+        stacked.unsqueeze(0),
+        size=(224, 224),
+        mode="bilinear",
+        align_corners=False,
+    )
+
+    return stacked.unsqueeze(2)
+
+
+if __name__ == "__main__":
+    print("Preprocessing module loaded successfully.")
